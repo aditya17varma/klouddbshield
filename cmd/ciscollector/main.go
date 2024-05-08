@@ -6,22 +6,28 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"reflect"
-	"runtime"
+	"regexp"
+	//"runtime"
 	"sort"
 	"strings"
 	"syscall"
 
 	"github.com/jedib0t/go-pretty/text"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/olekukonko/tablewriter"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
 	"github.com/klouddb/klouddbshield/htmlreport"
 	"github.com/klouddb/klouddbshield/model"
 	"github.com/klouddb/klouddbshield/mysql"
 	"github.com/klouddb/klouddbshield/passwordmanager"
 	"github.com/klouddb/klouddbshield/pkg/config"
-	cons "github.com/klouddb/klouddbshield/pkg/const"
+	//cons "github.com/klouddb/klouddbshield/pkg/const"
 	"github.com/klouddb/klouddbshield/pkg/logger"
 	"github.com/klouddb/klouddbshield/pkg/mysqldb"
 	"github.com/klouddb/klouddbshield/pkg/parselog"
@@ -31,9 +37,6 @@ import (
 	"github.com/klouddb/klouddbshield/postgres"
 	"github.com/klouddb/klouddbshield/postgres/hbascanner"
 	"github.com/klouddb/klouddbshield/rds"
-	"github.com/olekukonko/tablewriter"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 func init() {
@@ -49,11 +52,12 @@ func main() {
 
 	htmlHelper := &htmlreport.HTMLHelper{}
 	resultMap := map[string]interface{}{}
+
 	defer func() {
 		if len(resultMap) != 0 {
 			saveResultInFile(resultMap)
 		}
-		generated, err := htmlHelper.Generate("report.html", 0600)
+		generated, err := htmlHelper.Render("report.html", 0600)
 		if !generated {
 			return
 		}
@@ -65,72 +69,86 @@ func main() {
 
 	}()
 
+	// resultMap, listOfResults, err := loadResultsFromFile("report.json")
+	// if err != nil {
+	// 	log.Print("Unable to read from result file.")
+	// }
+
+	// var queryResults []model.DataTable
+	// scoreMap := postgres.CalculateScore(listOfResults)
+
+	// data := htmlreport.RenderHTMLTemplate(listOfResults, queryResults, scoreMap, "Postgres")
+
+	// data := htmlreport.GenerateHTMLReport(listOfResults, "Postgres")
+	// htmlHelper.AddTab("Postgres", data)
+
 	// Program context
 	ctx := context.Background()
-	if cnf.App.VerbosePostgres {
-		runPostgresByControl(ctx, cnf)
-		return
-	}
-	if cnf.App.RunMySql {
-		runMySql(ctx, cnf, resultMap)
-	}
+	// if cnf.App.VerbosePostgres {
+	// 	runPostgresByControl(ctx, cnf)
+	// 	return
+	// }
+
+	// if cnf.App.RunMySql {
+	// 	runMySql(ctx, cnf, resultMap)
+	// }
 	if cnf.App.RunPostgres {
 		runPostgres(ctx, cnf, htmlHelper, resultMap)
+	}
 
-	}
-	if cnf.App.RunRds {
-		runRDS(ctx, cnf, resultMap)
-	}
+	// if cnf.App.RunRds {
+	// 	runRDS(ctx, cnf, resultMap)
+	// }
 	if cnf.App.HBASacanner {
 		runHBAScanner(ctx, cnf, htmlHelper, resultMap)
 	}
-	if cnf.App.VerboseHBASacanner {
-		runHBAScannerByControl(ctx, cnf)
-	}
+	// if cnf.App.VerboseHBASacanner {
+	// 	runHBAScannerByControl(ctx, cnf)
+	// }
 
-	if cnf.LogParser != nil {
-		// run log parser
-		// controlling number of cores used by log parser to 1
-		runtime.GOMAXPROCS(1)
+	// if cnf.LogParser != nil {
+	// 	// run log parser
+	// 	// controlling number of cores used by log parser to 1
+	// 	runtime.GOMAXPROCS(1)
 
-		var store *sql.DB
-		if cnf.Postgres != nil {
-			var err error
-			store, _, err = postgresdb.Open(*cnf.Postgres)
-			if err != nil {
-				fmt.Println("Error while connecting to database: ", err)
-			}
-		}
-		updatePgSettings(ctx, store, cnf.LogParser.PgSettings)
+	// 	var store *sql.DB
+	// 	if cnf.Postgres != nil {
+	// 		var err error
+	// 		store, _, err = postgresdb.Open(*cnf.Postgres)
+	// 		if err != nil {
+	// 			fmt.Println("Error while connecting to database: ", err)
+	// 		}
+	// 	}
+	// 	updatePgSettings(ctx, store, cnf.LogParser.PgSettings)
 
-		switch cnf.LogParser.Command {
-		case cons.LogParserCMD_UniqueIPs:
-			runUniqueIPLogParser(ctx, cnf)
-		case cons.LogParserCMD_InactiveUsr:
-			runInactiveUSersLogParser(ctx, cnf, store)
-		// case cons.LogParserCMD_MismatchIPs:
-		// 	runMismatchIPsLogParser(ctx, cnf)
-		default:
-			fmt.Println("Invalid command for log parser")
-			os.Exit(1)
-		}
-	}
+	// 	switch cnf.LogParser.Command {
+	// 	case cons.LogParserCMD_UniqueIPs:
+	// 		runUniqueIPLogParser(ctx, cnf)
+	// 	case cons.LogParserCMD_InactiveUsr:
+	// 		runInactiveUSersLogParser(ctx, cnf, store)
+	// 	// case cons.LogParserCMD_MismatchIPs:
+	// 	// 	runMismatchIPsLogParser(ctx, cnf)
+	// 	default:
+	// 		fmt.Println("Invalid command for log parser")
+	// 		os.Exit(1)
+	// 	}
+	// }
 
-	if cnf.App.RunPostgresConnTest {
-		runPostgresPasswordScanner(ctx, cnf)
-	}
+	// if cnf.App.RunPostgresConnTest {
+	// 	runPostgresPasswordScanner(ctx, cnf)
+	// }
 
-	if cnf.App.RunGeneratePassword {
-		runPasswordGenerator(ctx, cnf)
-	}
+	// if cnf.App.RunGeneratePassword {
+	// 	runPasswordGenerator(ctx, cnf)
+	// }
 
-	if cnf.App.RunPwnedUsers {
-		runPwnedUsers(ctx, cnf)
-	}
+	// if cnf.App.RunPwnedUsers {
+	// 	runPwnedUsers(ctx, cnf)
+	// }
 
-	if cnf.App.RunPwnedPasswords {
-		runPwnedPassword(ctx, cnf)
-	}
+	// if cnf.App.RunPwnedPasswords {
+	// 	runPwnedPassword(ctx, cnf)
+	// }
 }
 
 func updatePgSettings(ctx context.Context, store *sql.DB, pgSettings *model.PgSettings) {
@@ -345,6 +363,38 @@ func runUniqueIPLogParser(ctx context.Context, cnf *config.Config) {
 
 }
 
+// loadResultsFromFile reads the JSON file and un-marshals its content back into a map[string]interface{}.
+// Makes it easier to test the HTML generation without having to run the postgres security check every time.
+func loadResultsFromFile(filename string) (map[string]interface{}, []*model.Result, error) {
+	var resultMap map[string]interface{}
+	var results map[string][]*model.Result
+
+	// Read the JSON file
+	jsonData, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Printf("Error reading JSON file: %s", err)
+		return nil, nil, err
+	}
+
+	// Unmarshal jsonData into resultMap
+	err = json.Unmarshal(jsonData, &resultMap)
+	if err != nil {
+		log.Printf("Error un-marshalling JSON data: %s", err)
+		return nil, nil, err
+	}
+
+	// Unmarshal into listOfResults
+	err = json.Unmarshal(jsonData, &results)
+	if err != nil {
+		log.Print("Error Unmarshalling data into listOfResults")
+		return nil, nil, err
+	}
+
+	listOfResults := results["Postgres"]
+
+	return resultMap, listOfResults, nil
+}
+
 func saveResultInFile(result interface{}) {
 	jsonData, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
@@ -430,10 +480,30 @@ func runPostgres(ctx context.Context, cnf *config.Config, h *htmlreport.HTMLHelp
 	if err != nil {
 		return nil
 	}
-	listOfResults := postgres.PerformAllChecks(postgresStore, ctx)
+
+	// Determine Postgres version
+	var postgresVersion string
+	err = postgresStore.QueryRow("SELECT version();").Scan(&postgresVersion)
+	if err != nil {
+		log.Error().Err(err).Msg(err.Error())
+	}
+	// Regular expression to find the version number.
+	re := regexp.MustCompile(`\d+`)
+	version := re.FindString(postgresVersion)
+
+	listOfResults, scoreMap, err := postgres.PerformAllChecks(postgresStore, ctx, version)
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
 	resultMap["Postgres"] = listOfResults
 
-	data := htmlreport.GenerateHTMLReport(listOfResults, "Postgres")
+	// TODO: Update query results?
+	var queryResults []model.DataTable
+
+	//data := htmlreport.GenerateHTMLReport(listOfResults, "Postgres")
+	data := htmlreport.RenderHTMLTemplate(listOfResults, queryResults, scoreMap, version)
+
 	h.AddTab("Postgres", data)
 
 	return listOfResults

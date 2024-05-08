@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/klouddb/klouddbshield/model"
-	cons "github.com/klouddb/klouddbshield/pkg/const"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+
+	"github.com/klouddb/klouddbshield/model"
+	cons "github.com/klouddb/klouddbshield/pkg/const"
 )
 
 type Config struct {
@@ -186,7 +187,7 @@ func NewConfig() (*Config, error) {
 	var runMySql bool
 	var runRds bool
 	var control string
-	var hbaSacanner bool
+	var hbaScanner bool
 	var runPostgresConnTest, runGeneratePassword, runPwnedUsers, runPwnedPassword bool
 	var userDefaults bool
 	var inputDirectory string
@@ -264,22 +265,26 @@ e.g
 	if run && !verbose {
 		fmt.Print(cons.MSG_Choise)
 		choice := 0
-		fmt.Scanln(&choice)
+		//fmt.Scanln(&choice)
+
+		choice = 1
+
 		switch choice {
 		case 1:
 			runPostgres = true
 			response := ""
 			fmt.Println("Do you also want to run HBA Scanner?(y/n):")
-			fmt.Scanln(&response)
+			//fmt.Scanln(&response)
+			// response = "y"
 			if response == "y" || response == "Y" {
-				hbaSacanner = true
+				hbaScanner = true
 			}
 		case 2:
 			runMySql = true
 		case 3:
 			runRds = true
 		case 4:
-			hbaSacanner = true
+			hbaScanner = true
 		case 5:
 			logParserConf = getLogParserInputs()
 		case 6:
@@ -322,7 +327,7 @@ e.g
 	c.App.RunRds = runRds
 	c.App.Verbose = verbose
 	c.App.Control = control
-	c.App.HBASacanner = hbaSacanner
+	c.App.HBASacanner = hbaScanner
 	c.LogParser = logParserConf
 	c.App.RunPostgresConnTest = runPostgresConnTest
 	c.App.RunPwnedUsers = runPwnedUsers
@@ -439,8 +444,9 @@ func loadConfig() (*Config, error) {
 	v := viper.New()
 	v.SetConfigType("toml")
 	v.SetConfigName("kshieldconfig")
-	v.AddConfigPath(".")
-	v.AddConfigPath("/etc/klouddbshield")
+	v.AddConfigPath("./")
+	v.AddConfigPath("../../")
+	//v.AddConfigPath("/etc/klouddbshield")
 
 	c := &Config{}
 

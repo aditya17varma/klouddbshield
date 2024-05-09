@@ -307,10 +307,7 @@ func isLMACheck(fn checkFunc) bool {
 
 func PerformAllChecks(store *sql.DB, ctx context.Context, version string) ([]*model.Result, map[int]*model.Status, error) {
 	var listOfResult []*model.Result
-	//var listOfChecks []checkFunc
 	var err error = nil
-
-	// fmt.Println("Postgres version:", version)
 
 	settingsMap := getPG_settings(store)
 
@@ -350,7 +347,6 @@ func PerformAllChecks(store *sql.DB, ctx context.Context, version string) ([]*mo
 			log.Error().Err(err).Msg(err.Error())
 		}
 		if result == nil {
-			// log.Print("Got nil for ", function)
 			continue
 		}
 
@@ -381,8 +377,6 @@ func PerformAllChecks(store *sql.DB, ctx context.Context, version string) ([]*mo
 
 		listOfResult = append(listOfResult, result)
 	}
-	// fmt.Println("Len results: ", len(listOfResult))
-
 	score := CalculateScore(listOfResult)
 	PrintScore(score)
 	return listOfResult, score, err

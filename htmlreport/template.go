@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/klouddb/klouddbshield/model"
@@ -87,6 +88,19 @@ func RenderHTMLTemplate(listOfResults []*model.Result, queryResults []model.Data
 	overallSection.Score = scoreMap[0].Pass
 	overallSection.MaxScore = scoreMap[0].Pass + scoreMap[0].Fail
 
+	// Find the first control in each section and it's id
+	sectionLeaderMap := make(map[int]string)
+	for i := 1; i < 9; i++ {
+		sectionLeaderMap[i] = ""
+	}
+
+	for _, result := range listOfResults {
+		sectionId, _ := strconv.Atoi(strings.Split(result.Control, ".")[0])
+		if sectionLeaderMap[sectionId] == "" {
+			resultId := strings.ReplaceAll(result.Control+result.Title, " ", "")
+			sectionLeaderMap[sectionId] = resultId
+		}
+	}
 	// Render the progress bars for each section, apart from overall section
 	for idx, section := range sections[1:] {
 		section.Score = scoreMap[idx+1].Pass
@@ -100,6 +114,7 @@ func RenderHTMLTemplate(listOfResults []*model.Result, queryResults []model.Data
 				"MaxScore":    section.MaxScore,
 				"Percentage":  progressPercentage,
 				"Color":       section.Color,
+				"AnchorID":    sectionLeaderMap[idx+1],
 			})
 		}
 	}
@@ -153,7 +168,7 @@ func RenderHTMLTemplate(listOfResults []*model.Result, queryResults []model.Data
 		// "TOS":                 template.HTML(tos.String()),
 		"SectionProgressBars": template.HTML(sectionProgressBars.String()),
 		"OverallProgressBar":  template.HTML(overallProgressBar.String()),
-		"PostgresVersion":     template.HTML(database),
+		"PostgresVersion":     template.HTML(fmt.Sprintf("Postgres Version: %s", database)),
 	})
 
 	return body.String()

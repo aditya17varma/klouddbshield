@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"reflect"
 	"regexp"
+	"runtime"
 	//"runtime"
 	"sort"
 	"strings"
@@ -27,7 +28,7 @@ import (
 	"github.com/klouddb/klouddbshield/mysql"
 	"github.com/klouddb/klouddbshield/passwordmanager"
 	"github.com/klouddb/klouddbshield/pkg/config"
-	//cons "github.com/klouddb/klouddbshield/pkg/const"
+	cons "github.com/klouddb/klouddbshield/pkg/const"
 	"github.com/klouddb/klouddbshield/pkg/logger"
 	"github.com/klouddb/klouddbshield/pkg/mysqldb"
 	"github.com/klouddb/klouddbshield/pkg/parselog"
@@ -84,71 +85,71 @@ func main() {
 
 	// Program context
 	ctx := context.Background()
-	// if cnf.App.VerbosePostgres {
-	// 	runPostgresByControl(ctx, cnf)
-	// 	return
-	// }
+	if cnf.App.VerbosePostgres {
+		runPostgresByControl(ctx, cnf)
+		return
+	}
 
-	// if cnf.App.RunMySql {
-	// 	runMySql(ctx, cnf, resultMap)
-	// }
+	if cnf.App.RunMySql {
+		runMySql(ctx, cnf, resultMap)
+	}
 	if cnf.App.RunPostgres {
 		runPostgres(ctx, cnf, htmlHelper, resultMap)
 	}
 
-	// if cnf.App.RunRds {
-	// 	runRDS(ctx, cnf, resultMap)
-	// }
+	if cnf.App.RunRds {
+		runRDS(ctx, cnf, resultMap)
+	}
 	if cnf.App.HBASacanner {
 		runHBAScanner(ctx, cnf, htmlHelper, resultMap)
 	}
-	// if cnf.App.VerboseHBASacanner {
-	// 	runHBAScannerByControl(ctx, cnf)
-	// }
+	if cnf.App.VerboseHBASacanner {
+		runHBAScannerByControl(ctx, cnf)
+	}
 
-	// if cnf.LogParser != nil {
-	// 	// run log parser
-	// 	// controlling number of cores used by log parser to 1
-	// 	runtime.GOMAXPROCS(1)
+	if cnf.LogParser != nil {
+		// run log parser
+		// controlling number of cores used by log parser to 1
+		runtime.GOMAXPROCS(1)
 
-	// 	var store *sql.DB
-	// 	if cnf.Postgres != nil {
-	// 		var err error
-	// 		store, _, err = postgresdb.Open(*cnf.Postgres)
-	// 		if err != nil {
-	// 			fmt.Println("Error while connecting to database: ", err)
-	// 		}
-	// 	}
-	// 	updatePgSettings(ctx, store, cnf.LogParser.PgSettings)
+		var store *sql.DB
+		if cnf.Postgres != nil {
+			var err error
+			store, _, err = postgresdb.Open(*cnf.Postgres)
+			if err != nil {
+				fmt.Println("Error while connecting to database: ", err)
+			}
+		}
+		updatePgSettings(ctx, store, cnf.LogParser.PgSettings)
 
-	// 	switch cnf.LogParser.Command {
-	// 	case cons.LogParserCMD_UniqueIPs:
-	// 		runUniqueIPLogParser(ctx, cnf)
-	// 	case cons.LogParserCMD_InactiveUsr:
-	// 		runInactiveUSersLogParser(ctx, cnf, store)
-	// 	// case cons.LogParserCMD_MismatchIPs:
-	// 	// 	runMismatchIPsLogParser(ctx, cnf)
-	// 	default:
-	// 		fmt.Println("Invalid command for log parser")
-	// 		os.Exit(1)
-	// 	}
-	// }
+		switch cnf.LogParser.Command {
+		case cons.LogParserCMD_UniqueIPs:
+			runUniqueIPLogParser(ctx, cnf)
+		case cons.LogParserCMD_InactiveUsr:
+			runInactiveUSersLogParser(ctx, cnf, store)
+		// case cons.LogParserCMD_MismatchIPs:
+		// 	runMismatchIPsLogParser(ctx, cnf)
+		default:
+			fmt.Println("Invalid command for log parser")
+			os.Exit(1)
+		}
+	}
 
-	// if cnf.App.RunPostgresConnTest {
-	// 	runPostgresPasswordScanner(ctx, cnf)
-	// }
+	if cnf.App.RunPostgresConnTest {
+		runPostgresPasswordScanner(ctx, cnf)
+	}
 
-	// if cnf.App.RunGeneratePassword {
-	// 	runPasswordGenerator(ctx, cnf)
-	// }
+	if cnf.App.RunGeneratePassword {
+		runPasswordGenerator(ctx, cnf)
+	}
 
-	// if cnf.App.RunPwnedUsers {
-	// 	runPwnedUsers(ctx, cnf)
-	// }
+	if cnf.App.RunPwnedUsers {
+		runPwnedUsers(ctx, cnf)
+	}
 
-	// if cnf.App.RunPwnedPasswords {
-	// 	runPwnedPassword(ctx, cnf)
-	// }
+	if cnf.App.RunPwnedPasswords {
+		runPwnedPassword(ctx, cnf)
+	}
 }
 
 func updatePgSettings(ctx context.Context, store *sql.DB, pgSettings *model.PgSettings) {
@@ -498,7 +499,6 @@ func runPostgres(ctx context.Context, cnf *config.Config, h *htmlreport.HTMLHelp
 	}
 	resultMap["Postgres"] = listOfResults
 
-	// TODO: Update query results?
 	var queryResults []model.DataTable
 
 	//data := htmlreport.GenerateHTMLReport(listOfResults, "Postgres")

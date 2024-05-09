@@ -265,17 +265,15 @@ e.g
 	if run && !verbose {
 		fmt.Print(cons.MSG_Choise)
 		choice := 0
-		//fmt.Scanln(&choice)
-
-		choice = 1
+		fmt.Scanln(&choice)
 
 		switch choice {
 		case 1:
 			runPostgres = true
 			response := ""
 			fmt.Println("Do you also want to run HBA Scanner?(y/n):")
-			//fmt.Scanln(&response)
-			// response = "y"
+			fmt.Scanln(&response)
+			response = "y"
 			if response == "y" || response == "Y" {
 				hbaScanner = true
 			}
@@ -445,8 +443,7 @@ func loadConfig() (*Config, error) {
 	v.SetConfigType("toml")
 	v.SetConfigName("kshieldconfig")
 	v.AddConfigPath("./")
-	v.AddConfigPath("../../")
-	//v.AddConfigPath("/etc/klouddbshield")
+	v.AddConfigPath("/etc/klouddbshield")
 
 	c := &Config{}
 
